@@ -50,6 +50,9 @@ fn main() {
         let reg = Handlebars::new();
 
         copy_template_file(&reg, "CMakeLists.txt", object_name);
-        copy_template_file(&reg, "main.cpp", object_name);
+
+        let src_dir_path = format!("{}/{}", object_name, "src");
+        std::fs::create_dir(src_dir_path).expect("Couldn't create project subdirectory 'src'");
+        copy_template_file(&reg, "src/main.cpp", object_name);
     }
 }
