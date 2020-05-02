@@ -6,9 +6,14 @@ extern crate serde_json;
 use clap::{App, Arg, SubCommand};
 use handlebars::Handlebars;
 use rust_embed::RustEmbed;
+use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
+use std::process::Command;
+
+static CMAKE_PATH: &str = "C:\\Program Files\\CMake\\bin";
+static MINGW_PATH: &str = "C:\\mingw-w64\\x86_64-8.1.0-win32-seh-rt_v6-rev0\\mingw64\\bin";
 
 #[derive(RustEmbed)]
 #[folder = "templates"]
@@ -41,6 +46,10 @@ fn main() {
                 )
                 .arg(Arg::with_name("object_name").required(true).index(1)),
         )
+        .subcommand(
+            SubCommand::with_name("build")
+                .about("Build the current project")
+        )
         .get_matches();
 
     if let Some(new_matches) = matches.subcommand_matches("new") {
@@ -54,5 +63,27 @@ fn main() {
         let src_dir_path = format!("{}/{}", object_name, "src");
         std::fs::create_dir(src_dir_path).expect("Couldn't create project subdirectory 'src'");
         copy_template_file(&reg, "src/main.cpp", object_name);
+    }
+    else if let Some(_) = matches.subcommand_matches("build") {
+        let current_path_var = match env::var("PATH") {
+            Ok(val) => val,
+            Err(_) => String::from(""),
+        };
+
+        let new_path_var = format!("{};{};{}", CMAKE_PATH, MINGW_PATH, current_path_var);
+
+        let cmake_status = Command::new("cmake")
+            .args(&["-S", ".", "-B", "build", "-G", "MinGW Makefiles"])
+            .env("PATH", &new_path_var)
+            .status()
+            .expect("Couldn't call the CMake executable");
+        println!("Exit status of CMake: {}", cmake_status);
+
+        let build_status = Command::new("cmake")
+            .args(&["--build", "build"])
+            .env("PATH", &new_path_var)
+            .status()
+            .expect("Couldn't call the CMake executable");
+        println!("Exit status of CMake/Build: {}", build_status);
     }
 }
