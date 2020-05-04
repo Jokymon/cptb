@@ -1,23 +1,38 @@
 extern crate clap;
+extern crate dirs;
 extern crate handlebars;
+#[macro_use]
+extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
 use clap::{App, Arg, SubCommand};
 use handlebars::Handlebars;
 use rust_embed::RustEmbed;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
+use std::io::BufReader;
 use std::process::Command;
-
-static CMAKE_PATH: &str = "C:\\Program Files\\CMake\\bin";
-static MINGW_PATH: &str = "C:\\mingw-w64\\x86_64-8.1.0-win32-seh-rt_v6-rev0\\mingw64\\bin";
 
 #[derive(RustEmbed)]
 #[folder = "templates"]
 struct Asset;
+
+#[derive(Deserialize)]
+struct CMakeSettings {
+    path: String,
+    generator: Option<String>
+}
+
+#[derive(Deserialize)]
+struct Kit {
+    toolchain: String,
+    toolchain_path: String,
+    cmake: CMakeSettings
+}
 
 fn copy_template_file(reg: &handlebars::Handlebars, rel_src_path: &str, project_name: &str) {
     let template = Asset::get(rel_src_path).unwrap();
@@ -32,6 +47,14 @@ fn copy_template_file(reg: &handlebars::Handlebars, rel_src_path: &str, project_
 }
 
 fn main() {
+    let home_dir = dirs::home_dir().expect("cptb is not supported on platforms without Home directories");
+
+    let kits_file_path = format!("{}/{}/{}", home_dir.to_str().expect(""), ".cptb", "kits.json");
+    let file = File::open(kits_file_path).expect("Couldn't find the kits.json file");
+    let reader = BufReader::new(file);
+    let kits: HashMap<String, Kit> = serde_json::from_reader(reader).expect("");
+    let kit = kits.get("cmake-3-13_mingw-8-3").expect("");
+
     let matches = App::new("cptb")
         .version("1.0")
         .author("Silvan Wegmann")
@@ -70,7 +93,12 @@ fn main() {
             Err(_) => String::from(""),
         };
 
-        let new_path_var = format!("{};{};{}", CMAKE_PATH, MINGW_PATH, current_path_var);
+        let new_path_var = format!("{};{};{}", kit.cmake.path, kit.toolchain_path, current_path_var);
+        let mut cmake_parameters = vec!("-S", ".", "-B", "build");
+        if let Some(generator) = &kit.cmake.generator {
+            cmake_parameters.push("-G");
+            cmake_parameters.push(generator);
+        }
 
         let cmake_status = Command::new("cmake")
             .args(&["-S", ".", "-B", "build", "-G", "MinGW Makefiles"])
