@@ -64,7 +64,7 @@ fn main() {
     let toolchain_dir = format!("{}/toolchains/{}/bin", cptb_config_dir, kit.toolchain);
 
     let matches = App::new("cptb")
-        .version("1.0")
+        .version("0.1")
         .author("Silvan Wegmann")
         .about("C++ helper tool")
         .subcommand(
