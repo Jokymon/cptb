@@ -23,14 +23,13 @@ struct Asset;
 
 #[derive(Deserialize)]
 struct CMakeSettings {
-    path: String,
+    package: String,
     generator: Option<String>
 }
 
 #[derive(Deserialize)]
 struct Kit {
     toolchain: String,
-    toolchain_path: String,
     cmake: CMakeSettings
 }
 
@@ -48,12 +47,16 @@ fn copy_template_file(reg: &handlebars::Handlebars, rel_src_path: &str, project_
 
 fn main() {
     let home_dir = dirs::home_dir().expect("cptb is not supported on platforms without Home directories");
+    let cptb_config_dir = format!("{}/{}", home_dir.to_str().expect(""), ".cptb");
 
-    let kits_file_path = format!("{}/{}/{}", home_dir.to_str().expect(""), ".cptb", "kits.json");
+    let kits_file_path = format!("{}/{}", cptb_config_dir, "kits.json");
     let file = File::open(kits_file_path).expect("Couldn't find the kits.json file");
     let reader = BufReader::new(file);
     let kits: HashMap<String, Kit> = serde_json::from_reader(reader).expect("");
-    let kit = kits.get("cmake-3-13_mingw-8-3").expect("");
+    let kit = kits.get("cmake-3-17_mingw-8-1").expect("");
+
+    let cmake_dir = format!("{}/cmake/{}/bin", cptb_config_dir, kit.cmake.package);
+    let toolchain_dir = format!("{}/toolchains/{}/bin", cptb_config_dir, kit.toolchain);
 
     let matches = App::new("cptb")
         .version("1.0")
@@ -93,7 +96,7 @@ fn main() {
             Err(_) => String::from(""),
         };
 
-        let new_path_var = format!("{};{};{}", kit.cmake.path, kit.toolchain_path, current_path_var);
+        let new_path_var = format!("{};{};{}", cmake_dir, toolchain_dir, current_path_var);
         let mut cmake_parameters = vec!("-S", ".", "-B", "build");
         if let Some(generator) = &kit.cmake.generator {
             cmake_parameters.push("-G");
