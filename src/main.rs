@@ -28,7 +28,7 @@ struct TemplateParameters {
 
 #[derive(Deserialize)]
 struct CMakeSettings {
-    package: String,
+    path: String,
     generator: Option<String>,
 }
 
@@ -63,8 +63,8 @@ fn main() {
     let kits: HashMap<String, Kit> = serde_json::from_reader(reader).expect("");
     let kit = kits.get("cmake-3-17_mingw-8-1").expect("");
 
-    let cmake_dir = format!("{}/cmake/{}/bin", cptb_config_dir, kit.cmake.package);
-    let toolchain_dir = format!("{}/toolchains/{}/bin", cptb_config_dir, kit.toolchain);
+    let cmake_dir = &kit.cmake.path;
+    let toolchain_dir = &kit.toolchain;
 
     let matches = App::new("cptb")
         .version("0.1")
