@@ -23,35 +23,38 @@ struct Asset;
 #[derive(Serialize)]
 struct TemplateParameters {
     projectname: String,
-    static_build: bool
+    static_build: bool,
 }
 
 #[derive(Deserialize)]
 struct CMakeSettings {
     package: String,
-    generator: Option<String>
+    generator: Option<String>,
 }
 
 #[derive(Deserialize)]
 struct Kit {
     toolchain: String,
-    cmake: CMakeSettings
+    cmake: CMakeSettings,
 }
 
-fn copy_template_file(reg: &handlebars::Handlebars, rel_src_path: &str, parameters: &TemplateParameters) {
+fn copy_template_file(
+    reg: &handlebars::Handlebars,
+    rel_src_path: &str,
+    parameters: &TemplateParameters,
+) {
     let template = Asset::get(rel_src_path).unwrap();
-    let mut template_file = File::create(format!("{}/{}", parameters.projectname, rel_src_path)).unwrap();
+    let mut template_file =
+        File::create(format!("{}/{}", parameters.projectname, rel_src_path)).unwrap();
     let file_content = reg
-        .render_template(
-            std::str::from_utf8(template.as_ref()).unwrap(),
-            parameters
-        )
+        .render_template(std::str::from_utf8(template.as_ref()).unwrap(), parameters)
         .unwrap();
     template_file.write_all(file_content.as_ref()).unwrap();
 }
 
 fn main() {
-    let home_dir = dirs::home_dir().expect("cptb is not supported on platforms without Home directories");
+    let home_dir =
+        dirs::home_dir().expect("cptb is not supported on platforms without Home directories");
     let cptb_config_dir = format!("{}/{}", home_dir.to_str().expect(""), ".cptb");
 
     let kits_file_path = format!("{}/{}", cptb_config_dir, "kits.json");
@@ -78,14 +81,11 @@ fn main() {
                 .arg(
                     Arg::with_name("non-static")
                         .long("non-static")
-                        .help("Create a project with dynamically linked libc and libc++")
+                        .help("Create a project with dynamically linked libc and libc++"),
                 )
                 .arg(Arg::with_name("object_name").required(true).index(1)),
         )
-        .subcommand(
-            SubCommand::with_name("build")
-                .about("Build the current project")
-        )
+        .subcommand(SubCommand::with_name("build").about("Build the current project"))
         .get_matches();
 
     if let Some(new_matches) = matches.subcommand_matches("new") {
@@ -93,7 +93,7 @@ fn main() {
 
         let template_parameters = TemplateParameters {
             projectname: object_name.to_string(),
-            static_build: !new_matches.is_present("non-static")
+            static_build: !new_matches.is_present("non-static"),
         };
 
         fs::create_dir(object_name).expect("Couldn't create the directory");
@@ -104,15 +104,14 @@ fn main() {
         let src_dir_path = format!("{}/{}", object_name, "src");
         std::fs::create_dir(src_dir_path).expect("Couldn't create project subdirectory 'src'");
         copy_template_file(&reg, "src/main.cpp", &template_parameters);
-    }
-    else if let Some(_) = matches.subcommand_matches("build") {
+    } else if let Some(_) = matches.subcommand_matches("build") {
         let current_path_var = match env::var("PATH") {
             Ok(val) => val,
             Err(_) => String::from(""),
         };
 
         let new_path_var = format!("{};{};{}", cmake_dir, toolchain_dir, current_path_var);
-        let mut cmake_parameters = vec!("-S", ".", "-B", "build");
+        let mut cmake_parameters = vec!["-S", ".", "-B", "build"];
         if let Some(generator) = &kit.cmake.generator {
             cmake_parameters.push("-G");
             cmake_parameters.push(generator);
