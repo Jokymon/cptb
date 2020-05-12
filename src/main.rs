@@ -14,7 +14,26 @@ use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::path::Path;
 use std::process::Command;
+
+#[derive(Debug)]
+enum CptbError {
+    SettingsFileMissing(std::io::Error),
+    SettingsFileParserError(serde_json::Error),
+}
+
+impl From<std::io::Error> for CptbError {
+    fn from(err: std::io::Error) -> CptbError {
+        CptbError::SettingsFileMissing(err)
+    }
+}
+
+impl From<serde_json::Error> for CptbError {
+    fn from(err: serde_json::Error) -> CptbError {
+        CptbError::SettingsFileParserError(err)
+    }
+}
 
 #[derive(RustEmbed)]
 #[folder = "templates"]
@@ -38,6 +57,11 @@ struct Kit {
     cmake: CMakeSettings,
 }
 
+#[derive(Deserialize)]
+struct CptbSettings {
+    default_kit: String,
+}
+
 fn copy_template_file(
     reg: &handlebars::Handlebars,
     rel_src_path: &str,
@@ -52,16 +76,30 @@ fn copy_template_file(
     template_file.write_all(file_content.as_ref()).unwrap();
 }
 
-fn main() {
+fn get_kits<P: AsRef<Path>>(settings_dir: P) -> Result<HashMap<String, Kit>, CptbError> {
+    let kits_file_path = settings_dir.as_ref().join("kits.json");
+    let file = File::open(kits_file_path)?;
+    let reader = BufReader::new(file);
+    let kits: HashMap<String, Kit> = serde_json::from_reader(reader)?;
+    Ok(kits)
+}
+
+fn get_settings<P: AsRef<Path>>(settings_dir: P) -> Result<CptbSettings, CptbError> {
+    let settings_file_path = settings_dir.as_ref().join("settings.json");
+    let file = File::open(settings_file_path)?;
+    let reader = BufReader::new(file);
+    let settings: CptbSettings = serde_json::from_reader(reader)?;
+    Ok(settings)
+}
+
+fn main() -> Result<(), CptbError> {
     let home_dir =
         dirs::home_dir().expect("cptb is not supported on platforms without Home directories");
     let cptb_config_dir = format!("{}/{}", home_dir.to_str().expect(""), ".cptb");
 
-    let kits_file_path = format!("{}/{}", cptb_config_dir, "kits.json");
-    let file = File::open(kits_file_path).expect("Couldn't find the kits.json file");
-    let reader = BufReader::new(file);
-    let kits: HashMap<String, Kit> = serde_json::from_reader(reader).expect("");
-    let kit = kits.get("cmake-3-17_mingw-8-1").expect("");
+    let kits = get_kits(&cptb_config_dir)?;
+    let settings = get_settings(&cptb_config_dir)?;
+    let kit = kits.get(&settings.default_kit).expect("");
 
     let cmake_dir = &kit.cmake.path;
     let toolchain_dir = &kit.toolchain;
@@ -131,4 +169,6 @@ fn main() {
             .expect("Couldn't call the CMake executable");
         println!("Exit status of CMake/Build: {}", build_status);
     }
+
+    Ok(())
 }
