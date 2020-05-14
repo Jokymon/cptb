@@ -6,13 +6,9 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use clap::{App, Arg, SubCommand};
-use handlebars::Handlebars;
-use rust_embed::RustEmbed;
 use std::collections::HashMap;
 use std::env;
-use std::fs;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
 use std::process::Command;
@@ -35,15 +31,7 @@ impl From<serde_json::Error> for CptbError {
     }
 }
 
-#[derive(RustEmbed)]
-#[folder = "templates"]
-struct Asset;
-
-#[derive(Serialize)]
-struct TemplateParameters {
-    projectname: String,
-    static_build: bool,
-}
+mod project_builder;
 
 #[derive(Deserialize)]
 struct CMakeSettings {
@@ -60,20 +48,6 @@ struct Kit {
 #[derive(Deserialize)]
 struct CptbSettings {
     default_kit: String,
-}
-
-fn copy_template_file(
-    reg: &handlebars::Handlebars,
-    rel_src_path: &str,
-    parameters: &TemplateParameters,
-) {
-    let template = Asset::get(rel_src_path).unwrap();
-    let mut template_file =
-        File::create(format!("{}/{}", parameters.projectname, rel_src_path)).unwrap();
-    let file_content = reg
-        .render_template(std::str::from_utf8(template.as_ref()).unwrap(), parameters)
-        .unwrap();
-    template_file.write_all(file_content.as_ref()).unwrap();
 }
 
 fn get_kits<P: AsRef<Path>>(settings_dir: P) -> Result<HashMap<String, Kit>, CptbError> {
@@ -128,20 +102,9 @@ fn main() -> Result<(), CptbError> {
 
     if let Some(new_matches) = matches.subcommand_matches("new") {
         let object_name = new_matches.value_of("object_name").unwrap();
+        let static_build = !new_matches.is_present("non-static");
 
-        let template_parameters = TemplateParameters {
-            projectname: object_name.to_string(),
-            static_build: !new_matches.is_present("non-static"),
-        };
-
-        fs::create_dir(object_name).expect("Couldn't create the directory");
-        let reg = Handlebars::new();
-
-        copy_template_file(&reg, "CMakeLists.txt", &template_parameters);
-
-        let src_dir_path = format!("{}/{}", object_name, "src");
-        std::fs::create_dir(src_dir_path).expect("Couldn't create project subdirectory 'src'");
-        copy_template_file(&reg, "src/main.cpp", &template_parameters);
+        project_builder::cptb_new_command(object_name, static_build);
     } else if let Some(_) = matches.subcommand_matches("build") {
         let current_path_var = match env::var("PATH") {
             Ok(val) => val,
