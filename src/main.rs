@@ -6,63 +6,24 @@ extern crate serde_derive;
 extern crate serde_json;
 
 mod error;
+mod project_builder;
+mod settings;
 
 use clap::{App, Arg, SubCommand};
-use std::collections::HashMap;
 use std::env;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
 use std::process::Command;
 
 use error::CptbError;
-
-mod project_builder;
-
-#[derive(Deserialize)]
-struct CMakeSettings {
-    path: String,
-    generator: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct Kit {
-    toolchain: String,
-    cmake: CMakeSettings,
-}
-
-#[derive(Deserialize)]
-struct CptbSettings {
-    default_kit: String,
-}
-
-fn get_kits<P: AsRef<Path>>(settings_dir: P) -> Result<HashMap<String, Kit>, CptbError> {
-    let kits_file_path = settings_dir.as_ref().join("kits.json");
-    let file = File::open(kits_file_path)?;
-    let reader = BufReader::new(file);
-    let kits: HashMap<String, Kit> = serde_json::from_reader(reader)?;
-    Ok(kits)
-}
-
-fn get_settings<P: AsRef<Path>>(settings_dir: P) -> Result<CptbSettings, CptbError> {
-    let settings_file_path = settings_dir.as_ref().join("settings.json");
-    let file = File::open(settings_file_path)?;
-    let reader = BufReader::new(file);
-    let settings: CptbSettings = serde_json::from_reader(reader)?;
-    Ok(settings)
-}
 
 fn main() -> Result<(), CptbError> {
     let home_dir =
         dirs::home_dir().expect("cptb is not supported on platforms without Home directories");
     let cptb_config_dir = format!("{}/{}", home_dir.to_str().expect(""), ".cptb");
+    let settings = settings::Settings::from_path(&cptb_config_dir)?;
 
-    let kits = get_kits(&cptb_config_dir)?;
-    let settings = get_settings(&cptb_config_dir)?;
-    let kit = kits.get(&settings.default_kit).expect("");
-
-    let cmake_dir = &kit.cmake.path;
-    let toolchain_dir = &kit.toolchain;
+    let cmake_dir = settings.default_cmake_dir();
+    let cmake_generator = settings.default_cmake_generator();
+    let toolchain_dir = settings.default_toolchain_dir();
 
     let matches = App::new("cptb")
         .version("0.1")
@@ -99,9 +60,9 @@ fn main() -> Result<(), CptbError> {
 
         let new_path_var = format!("{};{};{}", cmake_dir, toolchain_dir, current_path_var);
         let mut cmake_parameters = vec!["-S", ".", "-B", "build"];
-        if let Some(generator) = &kit.cmake.generator {
+        if let Some(generator) = cmake_generator {
             cmake_parameters.push("-G");
-            cmake_parameters.push(generator);
+            cmake_parameters.push(&generator);
         }
 
         let cmake_status = Command::new("cmake")
