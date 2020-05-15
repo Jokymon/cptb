@@ -5,6 +5,8 @@ extern crate handlebars;
 extern crate serde_derive;
 extern crate serde_json;
 
+mod error;
+
 use clap::{App, Arg, SubCommand};
 use std::collections::HashMap;
 use std::env;
@@ -13,23 +15,7 @@ use std::io::BufReader;
 use std::path::Path;
 use std::process::Command;
 
-#[derive(Debug)]
-enum CptbError {
-    SettingsFileMissing(std::io::Error),
-    SettingsFileParserError(serde_json::Error),
-}
-
-impl From<std::io::Error> for CptbError {
-    fn from(err: std::io::Error) -> CptbError {
-        CptbError::SettingsFileMissing(err)
-    }
-}
-
-impl From<serde_json::Error> for CptbError {
-    fn from(err: serde_json::Error) -> CptbError {
-        CptbError::SettingsFileParserError(err)
-    }
-}
+use error::CptbError;
 
 mod project_builder;
 
