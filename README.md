@@ -62,18 +62,24 @@ two JSON-files that contain the CMake and toolchain descriptions. The file
 
 ```json
 {
-    "cmake-3-17_mingw-8-1": {
-        "toolchain": "c:/mingw64/x86_64-8.1.0-release-win32-seh-rt_v6-rev0/bin",
-        "cmake": {
-            "path": "c:/Program Files (x86)/CMake/bin",
-            "generator": "MinGW Makefiles"
+    "compilers": {
+        "mingw-8-1": {
+            "name": "MinGW-w64 8.1.0 SEH",
+            "path": "c:/mingw64/x86_64-8.1.0-release-win32-seh-rt_v6-rev0/bin"
         }
     },
-    "another_kit": {
-        "toolchain": "c:/mingw64/x86_64-7.3.0-release-win32-seh-rt_v3-rev0/bin",
-        "cmake": {
-            "path": "c:/sw/cmake-3.14.0/bin",
-            "generator": "Ninja"
+    "cmake": {
+        "cmake-3-17": {
+            "name": "CMake 3.17",
+            "generator": "MinGW Makefiles",
+            "path": "C:/Program Files (x86)/CMake/bin"
+        }
+    },
+    "kits": {
+        "cmake-3-17_mingw-8-1": {
+            "name": "MinGW 8.1.0; CMake 3.17",
+            "compiler": "mingw-8-1",
+            "cmake": "cmake-3-17"
         }
     }
 }

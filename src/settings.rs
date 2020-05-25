@@ -6,15 +6,30 @@ use std::path::Path;
 use crate::error::CptbError;
 
 #[derive(Deserialize)]
-struct CMakeSettings {
+struct CMakeEntry {
+    name: String,
     path: String,
     generator: Option<String>,
 }
 
 #[derive(Deserialize)]
-struct Kit {
-    toolchain: String,
-    cmake: CMakeSettings,
+struct CompilerEntry {
+    name: String,
+    path: String,
+}
+
+#[derive(Deserialize)]
+struct KitEntry {
+    name: String,
+    compiler: String,
+    cmake: String,
+}
+
+#[derive(Deserialize)]
+struct KitsFileStructure {
+    compilers: HashMap<String, CompilerEntry>,
+    cmake: HashMap<String, CMakeEntry>,
+    kits: HashMap<String, KitEntry>,
 }
 
 #[derive(Deserialize)]
@@ -23,15 +38,15 @@ struct CptbSettings {
 }
 
 pub struct Settings {
-    kits: HashMap<String, Kit>,
+    kits: KitsFileStructure,
     default_kit: String
 }
 
-fn get_kits<P: AsRef<Path>>(settings_dir: P) -> Result<HashMap<String, Kit>, CptbError> {
+fn get_kits<P: AsRef<Path>>(settings_dir: P) -> Result<KitsFileStructure, CptbError> {
     let kits_file_path = settings_dir.as_ref().join("kits.json");
     let file = File::open(kits_file_path)?;
     let reader = BufReader::new(file);
-    let kits: HashMap<String, Kit> = serde_json::from_reader(reader)?;
+    let kits: KitsFileStructure = serde_json::from_reader(reader)?;
     Ok(kits)
 }
 
@@ -51,24 +66,21 @@ impl Settings {
         })
     }
 
-    pub fn default_cmake_dir(&self) -> String {
-        let default_kit = self.kits.get(&self.default_kit);
-        match default_kit {
-            Some(kit) => kit.cmake.path.clone(),
-            None => "".to_owned()
-        }
+    pub fn default_cmake_dir(&self) -> Option<String> {
+        let default_kit = self.kits.kits.get(&self.default_kit)?;
+        let cmake_entry = self.kits.cmake.get(&default_kit.cmake)?;
+        Some(cmake_entry.path.clone())
     }
 
     pub fn default_cmake_generator(&self) -> Option<String> {
-        let default_kit = self.kits.get(&self.default_kit);
-        default_kit?.cmake.generator.clone()
+        let default_kit = self.kits.kits.get(&self.default_kit)?;
+        let cmake_entry = self.kits.cmake.get(&default_kit.cmake)?;
+        cmake_entry.generator.clone()
     }
 
-    pub fn default_toolchain_dir(&self) -> String {
-        let default_kit = self.kits.get(&self.default_kit);
-        match default_kit {
-            Some(kit) => kit.toolchain.clone(),
-            None => "".to_owned()
-        }
+    pub fn default_toolchain_dir(&self) -> Option<String> {
+        let default_kit = self.kits.kits.get(&self.default_kit)?;
+        let compiler_entry = self.kits.compilers.get(&default_kit.compiler)?;
+        Some(compiler_entry.path.clone())
     }
 }
