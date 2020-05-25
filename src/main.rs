@@ -26,7 +26,7 @@ fn main() -> Result<(), CptbError> {
     let toolchain_dir = settings.default_toolchain_dir().expect("A toolchain dir is required");
 
     let matches = App::new("cptb")
-        .version("0.1")
+        .version(crate_version!())
         .author("Silvan Wegmann")
         .about("C++ helper tool")
         .subcommand(
