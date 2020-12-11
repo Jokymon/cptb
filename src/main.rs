@@ -21,9 +21,13 @@ fn main() -> Result<(), CptbError> {
     let cptb_config_dir = format!("{}/{}", home_dir.to_str().expect(""), ".cptb");
     let settings = settings::Settings::from_path(&cptb_config_dir)?;
 
-    let cmake_dir = settings.default_cmake_dir().expect("A cmake dir is required");
+    let cmake_dir = settings
+        .default_cmake_dir()
+        .expect("A cmake dir is required");
     let cmake_generator = settings.default_cmake_generator();
-    let toolchain_dir = settings.default_toolchain_dir().expect("A toolchain dir is required");
+    let toolchain_dir = settings
+        .default_toolchain_dir()
+        .expect("A toolchain dir is required");
 
     let matches = App::new("cptb")
         .version(crate_version!())

@@ -39,7 +39,7 @@ struct CptbSettings {
 
 pub struct Settings {
     kits: KitsFileStructure,
-    default_kit: String
+    default_kit: String,
 }
 
 fn get_kits<P: AsRef<Path>>(settings_dir: P) -> Result<KitsFileStructure, CptbError> {
