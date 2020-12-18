@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate clap;
 extern crate dirs;
 extern crate handlebars;
