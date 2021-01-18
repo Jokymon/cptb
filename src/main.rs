@@ -6,29 +6,19 @@ extern crate handlebars;
 extern crate serde_derive;
 extern crate serde_json;
 
+mod cmake;
 mod error;
 mod project_builder;
 mod settings;
 
 use clap::{App, Arg, SubCommand};
-use std::env;
-use std::process::Command;
 
+use cmake::CmakeBuilder;
 use error::CptbError;
 
 fn main() -> Result<(), CptbError> {
-    let home_dir =
-        dirs::home_dir().expect("cptb is not supported on platforms without Home directories");
-    let cptb_config_dir = format!("{}/{}", home_dir.to_str().expect(""), ".cptb");
-    let settings = settings::Settings::from_path(&cptb_config_dir)?;
-
-    let cmake_dir = settings
-        .default_cmake_dir()
-        .expect("A cmake dir is required");
-    let cmake_generator = settings.default_cmake_generator();
-    let toolchain_dir = settings
-        .default_toolchain_dir()
-        .expect("A toolchain dir is required");
+    let settings = settings::Settings::from_home()?;
+    let cmake_builder = CmakeBuilder::from_settings(&settings);
 
     let matches = App::new("cptb")
         .version(crate_version!())
@@ -58,31 +48,8 @@ fn main() -> Result<(), CptbError> {
 
         project_builder::cptb_new_command(object_name, static_build);
     } else if let Some(_) = matches.subcommand_matches("build") {
-        let current_path_var = match env::var("PATH") {
-            Ok(val) => val,
-            Err(_) => String::from(""),
-        };
-
-        let new_path_var = format!("{};{};{}", cmake_dir, toolchain_dir, current_path_var);
-        let mut cmake_parameters = vec!["-S", ".", "-B", "build"];
-        if let Some(generator) = cmake_generator {
-            cmake_parameters.push("-G");
-            cmake_parameters.push(&generator);
-        }
-
-        let cmake_status = Command::new("cmake")
-            .args(&["-S", ".", "-B", "build", "-G", "MinGW Makefiles"])
-            .env("PATH", &new_path_var)
-            .status()
-            .expect("Couldn't call the CMake executable");
-        println!("Exit status of CMake: {}", cmake_status);
-
-        let build_status = Command::new("cmake")
-            .args(&["--build", "build"])
-            .env("PATH", &new_path_var)
-            .status()
-            .expect("Couldn't call the CMake executable");
-        println!("Exit status of CMake/Build: {}", build_status);
+        cmake_builder.generate(".", "build");
+        cmake_builder.build("build");
     }
 
     Ok(())

@@ -66,6 +66,13 @@ impl Settings {
         })
     }
 
+    pub fn from_home() -> Result<Settings, CptbError> {
+        let home_dir =
+            dirs::home_dir().expect("cptb is not supported on platforms without Home directories");
+        let cptb_config_dir = format!("{}/{}", home_dir.to_str().expect(""), ".cptb");
+        Settings::from_path(&cptb_config_dir)
+    }
+
     pub fn default_cmake_dir(&self) -> Option<String> {
         let default_kit = self.kits.kits.get(&self.default_kit)?;
         let cmake_entry = self.kits.cmake.get(&default_kit.cmake)?;
