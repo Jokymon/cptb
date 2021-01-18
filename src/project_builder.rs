@@ -5,6 +5,8 @@ use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 
+use crate::error::CptbError;
+
 #[derive(RustEmbed)]
 #[folder = "templates"]
 struct Asset;
@@ -38,6 +40,15 @@ fn copy_template_file(
     copy_template_file_to_target(reg, source_template_path, source_template_path, parameters);
 }
 
+fn download_file(source_url: &str, target_file_path: &str) -> Result<(), CptbError> {
+    let body: String = ureq::get(source_url).call()?.into_string()?;
+
+    let mut file = File::create(target_file_path)?;
+    file.write(body.as_bytes())?;
+
+    Ok(())
+}
+
 pub fn cptb_new_command(project_name: &str, static_build: bool) {
     let template_parameters = TemplateParameters {
         projectname: project_name.to_string(),
@@ -53,6 +64,15 @@ pub fn cptb_new_command(project_name: &str, static_build: bool) {
     std::fs::create_dir(src_dir_path).expect("Couldn't create project subdirectory 'src'");
     copy_template_file(&reg, "src/main.cpp", &template_parameters);
     copy_template_file_to_target(&reg, "_gitignore", ".gitignore", &template_parameters);
+
+    let cmake_dir_path = format!("{}/{}", project_name, "cmake");
+    std::fs::create_dir(cmake_dir_path).expect("Couldn't create project subdirectory 'cmake'");
+    let cpm_file_path = format!("{}/{}/{}", project_name, "cmake", "CPM.cmake");
+    download_file(
+        "https://github.com/TheLartians/CPM.cmake/releases/latest/download/CPM.cmake",
+        &cpm_file_path,
+    )
+    .unwrap();
 
     let _repo = match Repository::init(project_name) {
         Ok(repo) => repo,
