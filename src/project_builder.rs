@@ -21,6 +21,7 @@ struct TemplateParameters {
     toolchain: String,
     target: String,
     cmake_version: String,
+    with_tests: bool,
     static_build: bool,
 }
 
@@ -96,11 +97,12 @@ fn get_system_description() -> SystemDescription {
     system_description
 }
 
-pub fn cptb_new_command(project_name: &str, static_build: bool) {
+pub fn cptb_new_command(project_name: &str, with_tests: bool, static_build: bool) {
     let system_description = get_system_description();
 
     let template_parameters = TemplateParameters {
         projectname: project_name.to_string(),
+        with_tests: with_tests,
         static_build: static_build,
         toolchain: system_description.toolchain,
         target: system_description.target,
@@ -112,10 +114,16 @@ pub fn cptb_new_command(project_name: &str, static_build: bool) {
 
     copy_template_file(&reg, "CMakeLists.txt", &template_parameters);
 
+    copy_template_file_to_target(&reg, "_gitignore", ".gitignore", &template_parameters);
     let src_dir_path = format!("{}/{}", project_name, "src");
     std::fs::create_dir(src_dir_path).expect("Couldn't create project subdirectory 'src'");
     copy_template_file(&reg, "src/main.cpp", &template_parameters);
-    copy_template_file_to_target(&reg, "_gitignore", ".gitignore", &template_parameters);
+
+    if template_parameters.with_tests {
+        let tests_dir_path = format!("{}/{}", project_name, "tests");
+        std::fs::create_dir(tests_dir_path).expect("Couldn't create project subdirectory 'tests'");
+        copy_template_file(&reg, "tests/main.cpp", &template_parameters);
+    }
 
     let cmake_dir_path = format!("{}/{}", project_name, "cmake");
     std::fs::create_dir(cmake_dir_path).expect("Couldn't create project subdirectory 'cmake'");
