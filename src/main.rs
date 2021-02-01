@@ -16,6 +16,9 @@ use clap::{App, Arg, SubCommand};
 use cmake::CmakeBuilder;
 use error::CptbError;
 
+use std::env;
+use std::process::Command;
+
 fn main() -> Result<(), CptbError> {
     let settings = settings::Settings::from_home()?;
     let cmake_builder = CmakeBuilder::from_settings(&settings);
@@ -45,6 +48,10 @@ fn main() -> Result<(), CptbError> {
                 .arg(Arg::with_name("object_name").required(true).index(1)),
         )
         .subcommand(SubCommand::with_name("build").about("Build the current project"))
+        .subcommand(
+            SubCommand::with_name("buildenv")
+                .about("Start a new shell with all environment variables set according to the build environment"),
+        )
         .get_matches();
 
     if let Some(new_matches) = matches.subcommand_matches("new") {
@@ -56,6 +63,50 @@ fn main() -> Result<(), CptbError> {
     } else if let Some(_) = matches.subcommand_matches("build") {
         cmake_builder.generate(".", "build");
         cmake_builder.build("build");
+    } else if let Some(_) = matches.subcommand_matches("buildenv") {
+        let cmake_dir = settings
+            .default_cmake_dir()
+            .expect("A cmake dir is required");
+        let toolchain_dir = settings
+            .default_toolchain_dir()
+            .expect("A toolchain dir is required");
+
+        let current_path_var = match env::var("PATH") {
+            Ok(val) => val,
+            Err(_) => String::from(""),
+        };
+        let new_path_var = format!("{};{};{}", cmake_dir, toolchain_dir, current_path_var);
+
+        if cfg!(windows) {
+            let current_prompt = match env::var("PROMPT") {
+                Ok(val) => val,
+                Err(_) => String::from("$P$G"),
+            };
+            let new_prompt = format!("(cptb build) {}", current_prompt);
+
+            let _status = Command::new("cmd")
+                .env("PATH", new_path_var)
+                .env("PROMPT", new_prompt)
+                .status()
+                .expect("Couldn't run the shell executable");
+        } else {
+            let current_prompt = match env::var("PS1") {
+                Ok(val) => val,
+                Err(_) => String::from("> "),
+            };
+            let new_prompt = format!("(cptb build) {}", current_prompt);
+
+            let shell = match env::var("SHELL") {
+                Ok(val) => val,
+                Err(_) => String::from("/bin/sh"),
+            };
+
+            let _status = Command::new(shell)
+                .env("PATH", new_path_var)
+                .env("PS1", new_prompt)
+                .status()
+                .expect("Couldn't run the shell executable");
+        }
     }
 
     Ok(())

@@ -125,6 +125,32 @@ cptb build
 The initial hello world project should build right out of the box and you
 should now have your executable inside the `build/` folder of your project.
 
+### Getting a shell in the build environment
+
+When running `cptb build` this will temporarily update the `PATH` variable
+and potentially other environment variables to perform the build itself.
+However after running the `build` subcommand, these changes are no longer
+visible.
+
+To start a new shell with all environment variables set according to the
+build environment, simply run
+
+```
+cptb buildenv
+```
+
+Now you can run `cmake`, `make` or any other build tools available from your
+toolchain. In the new shell started by `cptb` you will see your original
+prompt prepended with a `(cptb build)` to indicate that you are in a special
+environment.
+
+Leaving the build environment is as easy as
+
+```
+exit
+```
+
+
 License
 -------
 
