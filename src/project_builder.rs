@@ -35,7 +35,7 @@ struct SystemDescription {
 fn copy_asset_to_target(source_template_path: &str, target_file_path: &str) {
     let template = Asset::get(source_template_path).unwrap();
     let mut target_file = File::create(target_file_path).unwrap();
-    target_file.write_all(template.as_ref()).unwrap();
+    target_file.write_all(&template.data).unwrap();
 }
 
 fn copy_template_file_to_target(
@@ -48,7 +48,7 @@ fn copy_template_file_to_target(
     let mut template_file =
         File::create(format!("{}/{}", parameters.projectname, target_file_path)).unwrap();
     let file_content = reg
-        .render_template(std::str::from_utf8(template.as_ref()).unwrap(), parameters)
+        .render_template(std::str::from_utf8(&template.data).unwrap(), parameters)
         .unwrap();
     template_file.write_all(file_content.as_ref()).unwrap();
 }
