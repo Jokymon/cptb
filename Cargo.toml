@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 clap = "2.33.0"
 handlebars = "3.0.1"
-rust-embed = "5.5.1"
+rust-embed = "6.3.0"
 ureq = "*"
 serde_derive = "*"
 serde = "*"
