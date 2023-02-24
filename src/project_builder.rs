@@ -86,6 +86,7 @@ fn get_system_description() -> SystemDescription {
     cmake_builder.generate(
         tmp_dir.path().to_str().unwrap(),
         tmp_dir.path().join("build").to_str().unwrap(),
+        false
     );
 
     let build_dir = tmp_dir.path().join("build");

@@ -47,7 +47,14 @@ fn main() -> Result<(), CptbError> {
                 )
                 .arg(Arg::with_name("object_name").required(true).index(1)),
         )
-        .subcommand(SubCommand::with_name("build").about("Build the current project"))
+        .subcommand(SubCommand::with_name("build")
+            .about("Build the current project")
+            .arg(
+                Arg::with_name("debug")
+                    .long("debug")
+                    .help("Build the project in DEBUG configuration")
+            )
+        )
         .subcommand(
             SubCommand::with_name("buildenv")
                 .about("Start a new shell with all environment variables set according to the build environment"),
@@ -60,9 +67,16 @@ fn main() -> Result<(), CptbError> {
         let static_build = !new_matches.is_present("non-static");
 
         project_builder::cptb_new_command(object_name, with_tests, static_build);
-    } else if let Some(_) = matches.subcommand_matches("build") {
-        cmake_builder.generate(".", "build");
-        cmake_builder.build("build");
+    } else if let Some(new_matches) = matches.subcommand_matches("build") {
+        let debug_build = new_matches.is_present("debug");
+        let build_dir = if debug_build {
+            "build-debug" 
+        } else {
+            "build"
+        };
+
+        cmake_builder.generate(".", build_dir, debug_build);
+        cmake_builder.build(build_dir);
     } else if let Some(_) = matches.subcommand_matches("buildenv") {
         let cmake_dir = settings
             .default_cmake_dir()
