@@ -6,40 +6,40 @@ use std::path::Path;
 use crate::error::CptbError;
 
 #[derive(Deserialize)]
-struct CMakeEntry {
-    name: String,
-    path: String,
-    generator: Option<String>,
+pub struct CMakeEntry {
+    pub name: String,
+    pub path: String,
+    pub generator: Option<String>,
 }
 
 #[derive(Deserialize)]
-struct CompilerEntry {
-    name: String,
-    path: String,
+pub struct CompilerEntry {
+    pub name: String,
+    pub path: String,
 }
 
 #[derive(Deserialize)]
-struct KitEntry {
-    name: String,
-    compiler: String,
-    cmake: String,
+pub struct KitEntry {
+    pub name: String,
+    pub compiler: String,
+    pub cmake: String,
 }
 
 #[derive(Deserialize)]
-struct KitsFileStructure {
-    compilers: HashMap<String, CompilerEntry>,
-    cmake: HashMap<String, CMakeEntry>,
-    kits: HashMap<String, KitEntry>,
+pub struct KitsFileStructure {
+    pub compilers: HashMap<String, CompilerEntry>,
+    pub cmake: HashMap<String, CMakeEntry>,
+    pub kits: HashMap<String, KitEntry>,
 }
 
 #[derive(Deserialize)]
 struct CptbSettings {
-    default_kit: String,
+    pub default_kit: String,
 }
 
 pub struct Settings {
-    kits: KitsFileStructure,
-    default_kit: String,
+    pub kits: KitsFileStructure,
+    pub default_kit: String,
 }
 
 fn get_kits<P: AsRef<Path>>(settings_dir: P) -> Result<KitsFileStructure, CptbError> {

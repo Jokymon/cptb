@@ -10,6 +10,7 @@ mod cmake;
 mod error;
 mod project_builder;
 mod settings;
+mod toolchains;
 
 use clap::{App, Arg, SubCommand};
 
@@ -20,10 +21,10 @@ use std::env;
 use std::process::Command;
 
 fn main() -> Result<(), CptbError> {
-    let settings = settings::Settings::from_home()?;
+    let settings: settings::Settings = settings::Settings::from_home()?;
     let cmake_builder = CmakeBuilder::from_settings(&settings);
 
-    let matches = App::new("cptb")
+    let app = App::new("cptb")
         .version(crate_version!())
         .author("Silvan Wegmann")
         .about("C++ helper tool")
@@ -59,7 +60,16 @@ fn main() -> Result<(), CptbError> {
             SubCommand::with_name("buildenv")
                 .about("Start a new shell with all environment variables set according to the build environment"),
         )
-        .get_matches();
+        .subcommand(
+            SubCommand::with_name("toolchain")
+            .about("Add, remove and query installed toolchains")
+            .subcommand(
+                SubCommand::with_name("list")
+                .about("Show all installed toolchains")
+            )
+        );
+
+    let matches = app.get_matches();
 
     if let Some(new_matches) = matches.subcommand_matches("new") {
         let object_name = new_matches.value_of("object_name").unwrap();
@@ -120,6 +130,13 @@ fn main() -> Result<(), CptbError> {
                 .env("PS1", new_prompt)
                 .status()
                 .expect("Couldn't run the shell executable");
+        }
+    } else if let Some(toolchain_command) = matches.subcommand_matches("toolchain") {
+        if let Some(_) = toolchain_command.subcommand_matches("list") {
+            toolchains::print_toolchain_list();
+        } else {
+            println!("No subcommand for 'toolchain' specified\n");
+            println!("{}", toolchain_command.usage());
         }
     }
 
