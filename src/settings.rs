@@ -9,13 +9,13 @@ use crate::error::CptbError;
 pub struct CMakeEntry {
     pub name: String,
     pub path: String,
-    pub generator: Option<String>,
 }
 
 #[derive(Deserialize)]
 pub struct CompilerEntry {
     pub name: String,
     pub path: String,
+    pub cmake_generator: String,
 }
 
 #[derive(Deserialize)]
@@ -81,8 +81,8 @@ impl Settings {
 
     pub fn default_cmake_generator(&self) -> Option<String> {
         let default_kit = self.kits.kits.get(&self.default_kit)?;
-        let cmake_entry = self.kits.cmake.get(&default_kit.cmake)?;
-        cmake_entry.generator.clone()
+        let compiler_entry = self.kits.compilers.get(&default_kit.compiler)?;
+        Some(compiler_entry.cmake_generator.clone())
     }
 
     pub fn default_toolchain_dir(&self) -> Option<String> {
