@@ -22,7 +22,6 @@ use std::process::Command;
 
 fn main() -> Result<(), CptbError> {
     let settings: settings::Settings = settings::Settings::from_home()?;
-    let cmake_builder = CmakeBuilder::from_settings(&settings);
 
     let app = App::new("cptb")
         .version(crate_version!())
@@ -50,6 +49,13 @@ fn main() -> Result<(), CptbError> {
         )
         .subcommand(SubCommand::with_name("build")
             .about("Build the current project")
+            .arg(
+                Arg::with_name("toolchain id")
+                    .long("toolchain")
+                    .takes_value(true)
+                    .default_value("")
+                    .help("Specify a toolchain other than the default")
+            )
             .arg(
                 Arg::with_name("debug")
                     .long("debug")
@@ -79,14 +85,30 @@ fn main() -> Result<(), CptbError> {
         project_builder::cptb_new_command(object_name, with_tests, static_build);
     } else if let Some(new_matches) = matches.subcommand_matches("build") {
         let debug_build = new_matches.is_present("debug");
-        let build_dir = if debug_build {
-            "build-debug" 
+        let toolchain_id=new_matches.value_of("toolchain id").unwrap_or("");
+
+        let cmake_builder = if toolchain_id!="" {
+            CmakeBuilder::from_toolchain(&settings, toolchain_id)
         } else {
-            "build"
+            CmakeBuilder::from_settings(&settings)
         };
 
-        cmake_builder.generate(".", build_dir, debug_build);
-        cmake_builder.build(build_dir);
+        let build_dir = if debug_build {
+            if toolchain_id=="" {
+                "build-debug".to_owned()
+            } else {
+                format!("build-debug-{}", toolchain_id)
+            }
+        } else {
+            if toolchain_id=="" {
+                "build".to_owned()
+            } else {
+                format!("build-{}", toolchain_id)
+            }
+        };
+
+        cmake_builder.generate(".", &build_dir, debug_build);
+        cmake_builder.build(&build_dir);
     } else if let Some(_) = matches.subcommand_matches("buildenv") {
         let cmake_dir = settings
             .default_cmake_dir()

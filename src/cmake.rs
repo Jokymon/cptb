@@ -9,14 +9,18 @@ pub struct CmakeBuilder {
 
 impl CmakeBuilder {
     pub fn from_settings(settings: &Settings) -> CmakeBuilder {
+        CmakeBuilder::from_toolchain(settings, &settings.default_kit)
+    }
+
+    pub fn from_toolchain(settings: &Settings, toolchain_id: &str) -> CmakeBuilder {
         let cmake_dir = settings
-            .default_cmake_dir()
+            .cmake_dir(toolchain_id)
             .expect("A cmake dir is required");
         let toolchain_dir = settings
-            .default_toolchain_dir()
+            .toolchain_dir(toolchain_id)
             .expect("A toolchain dir is required");
         let cmake_generator = settings
-            .default_cmake_generator()
+            .cmake_generator(toolchain_id)
             .expect("A generator is required");
 
         let current_path_var = match env::var("PATH") {

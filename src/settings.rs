@@ -79,15 +79,27 @@ impl Settings {
         Some(cmake_entry.path.clone())
     }
 
-    pub fn default_cmake_generator(&self) -> Option<String> {
-        let default_kit = self.kits.kits.get(&self.default_kit)?;
-        let compiler_entry = self.kits.compilers.get(&default_kit.compiler)?;
-        Some(compiler_entry.cmake_generator.clone())
-    }
-
     pub fn default_toolchain_dir(&self) -> Option<String> {
         let default_kit = self.kits.kits.get(&self.default_kit)?;
         let compiler_entry = self.kits.compilers.get(&default_kit.compiler)?;
+        Some(compiler_entry.path.clone())
+    }
+
+    pub fn cmake_dir(&self, toolchain_id: &str) -> Option<String> {
+        let kit = self.kits.kits.get(toolchain_id)?;
+        let cmake_entry = self.kits.cmake.get(&kit.cmake)?;
+        Some(cmake_entry.path.clone())        
+    }
+
+    pub fn cmake_generator(&self, toolchain_id: &str) -> Option<String> {
+        let kit = self.kits.kits.get(toolchain_id)?;
+        let compiler_entry = self.kits.compilers.get(&kit.compiler)?;
+        Some(compiler_entry.cmake_generator.clone())
+    }
+
+    pub fn toolchain_dir(&self, toolchain_id: &str) -> Option<String> {
+        let kit = self.kits.kits.get(toolchain_id)?;
+        let compiler_entry = self.kits.compilers.get(&kit.compiler)?;
         Some(compiler_entry.path.clone())
     }
 }
